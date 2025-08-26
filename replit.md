@@ -1,6 +1,6 @@
 # Overview
 
-A Telegram bot for an e-commerce store built with Python and the aiogram framework. The bot allows users to browse product categories, view products, and contact sellers for orders. It includes an admin panel for managing categories and products, with data persistence using JSON files.
+A Telegram bot for an e-commerce store built with Python and the aiogram framework. The bot allows users to browse product categories, view products, and contact sellers for orders. It includes an admin panel for managing categories and products, with data persistence using PostgreSQL database. The bot features a persistent menu for easy navigation.
 
 # User Preferences
 
@@ -14,15 +14,17 @@ Preferred communication style: Simple, everyday language.
 - **Router-based handlers**: Modular approach separating user and admin functionality
 
 ## Data Storage
-- **JSON file-based persistence**: Categories and products stored in separate JSON files
-- **In-memory caching**: Data loaded into memory on startup for fast access
-- **Auto-incrementing IDs**: Simple ID generation for categories and products
-- **Async file operations**: Non-blocking I/O for data persistence
+- **PostgreSQL database**: Categories and products stored in PostgreSQL database tables
+- **Async database operations**: Non-blocking database I/O using asyncpg
+- **Auto-incrementing IDs**: Database-generated primary keys for categories and products
+- **Foreign key constraints**: Referential integrity between categories and products
 
 ## Application Structure
 - **Modular handlers**: Separate routers for user interactions and admin operations
 - **Inline keyboards**: Dynamic keyboard generation based on available categories and products
 - **Callback query routing**: Event-driven navigation using callback data patterns
+- **Persistent menu**: Bottom menu with buttons for quick access to catalog and admin panel
+- **HTML formatting**: Proper text formatting using HTML tags instead of markdown
 
 ## Configuration Management
 - **Environment variables**: Bot token and admin ID configured via environment
@@ -47,8 +49,8 @@ Preferred communication style: Simple, everyday language.
 - **asyncio**: Python's built-in asynchronous programming library
 
 ## Data Storage
-- **JSON**: Built-in Python JSON module for data serialization
-- **File system**: Local file storage for persistence
+- **PostgreSQL**: Robust relational database for data persistence
+- **asyncpg**: Async PostgreSQL driver for Python
 
 ## Telegram Integration
 - **Telegram Bot API**: Direct integration via bot token

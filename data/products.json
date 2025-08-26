@@ -1,4 +1,26 @@
 {
-  "products": [],
-  "next_id": 1
+  "products": [
+    {
+      "id": 1,
+      "name": "Яблоки",
+      "description": "Свежие яблоки из Краснодара",
+      "price": 100.0,
+      "category_id": 1
+    },
+    {
+      "id": 2,
+      "name": "Мясо",
+      "description": "Свежее мясо",
+      "price": 3000.0,
+      "category_id": 1
+    },
+    {
+      "id": 4,
+      "name": "as",
+      "description": "as",
+      "price": 1.0,
+      "category_id": 1
+    }
+  ],
+  "next_id": 5
 }

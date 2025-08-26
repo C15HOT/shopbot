@@ -81,7 +81,7 @@ async def add_category_finish(message: Message, state: FSMContext):
         return
     
     category_id = await add_category(category_name)
-    await message.answer(f"✅ Категория {hbold(category_name)} добавлена!")
+    await message.answer(f"✅ Категория <b>{category_name}</b> добавлена!", parse_mode="HTML")
     await state.clear()
 
 @router.callback_query(F.data.startswith("delete_category_"))
@@ -119,7 +119,7 @@ async def edit_category_start(callback: CallbackQuery, state: FSMContext):
     category_name = next((cat["name"] for cat in categories if cat["id"] == category_id), None)
     
     if category_name:
-        await callback.message.answer(f"📝 Текущее название: {hbold(category_name)}\n\nВведите новое название категории:")
+        await callback.message.answer(f"📝 Текущее название: <b>{category_name}</b>\n\nВведите новое название категории:", parse_mode="HTML")
         await state.set_state(AdminStates.waiting_new_category_name)
     else:
         await callback.answer("❌ Категория не найдена!", show_alert=True)
@@ -139,7 +139,7 @@ async def edit_category_finish(message: Message, state: FSMContext):
     category_id = data["category_id"]
     
     await update_category(category_id, new_name)
-    await message.answer(f"✅ Название категории изменено на {hbold(new_name)}!")
+    await message.answer(f"✅ Название категории изменено на <b>{new_name}</b>!", parse_mode="HTML")
     await state.clear()
 
 @router.callback_query(F.data.startswith("add_product_"))
@@ -202,7 +202,7 @@ async def add_product_finish(message: Message, state: FSMContext):
         data["category_id"]
     )
     
-    await message.answer(f"✅ Товар {hbold(data['product_name'])} добавлен!")
+    await message.answer(f"✅ Товар <b>{data['product_name']}</b> добавлен!", parse_mode="HTML")
     await state.clear()
 
 @router.callback_query(F.data.startswith("delete_product_"))
@@ -240,7 +240,7 @@ async def edit_product_start(callback: CallbackQuery, state: FSMContext):
         return
     
     await state.update_data(product_id=product_id)
-    await callback.message.answer(f"📝 Текущее название: {hbold(product['name'])}\n\nВведите новое название товара:")
+    await callback.message.answer(f"📝 Текущее название: <b>{product['name']}</b>\n\nВведите новое название товара:", parse_mode="HTML")
     await state.set_state(AdminStates.waiting_new_product_name)
     await callback.answer()
 
@@ -258,7 +258,7 @@ async def edit_product_description(message: Message, state: FSMContext):
     data = await state.get_data()
     product = await get_product(data["product_id"])
     
-    await message.answer(f"📝 Текущее описание: {hbold(product['description'])}\n\nВведите новое описание товара:")
+    await message.answer(f"📝 Текущее описание: <b>{product['description']}</b>\n\nВведите новое описание товара:", parse_mode="HTML")
     await state.set_state(AdminStates.waiting_new_product_description)
 
 @router.message(AdminStates.waiting_new_product_description)
@@ -275,7 +275,7 @@ async def edit_product_price_input(message: Message, state: FSMContext):
     data = await state.get_data()
     product = await get_product(data["product_id"])
     
-    await message.answer(f"💰 Текущая цена: {hbold(str(product['price']) + ' руб.')}\n\nВведите новую цену товара (только число):")
+    await message.answer(f"💰 Текущая цена: <b>{product['price']} руб.</b>\n\nВведите новую цену товара (только число):", parse_mode="HTML")
     await state.set_state(AdminStates.waiting_new_product_price)
 
 @router.message(AdminStates.waiting_new_product_price)
@@ -298,7 +298,7 @@ async def edit_product_finish(message: Message, state: FSMContext):
         price
     )
     
-    await message.answer(f"✅ Товар {hbold(data['new_product_name'])} обновлен!")
+    await message.answer(f"✅ Товар <b>{data['new_product_name']}</b> обновлен!", parse_mode="HTML")
     await state.clear()
 
 @router.callback_query(F.data == "back_to_admin")

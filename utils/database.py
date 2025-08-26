@@ -1,162 +1,167 @@
-import json
 import os
 import asyncio
+import asyncpg
 from typing import List, Dict, Optional
 
-from config import CATEGORIES_FILE, PRODUCTS_FILE
+# Database connection
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-# In-memory storage
-categories_data = []
-products_data = []
-next_category_id = 1
-next_product_id = 1
+async def get_connection():
+    """Get database connection"""
+    return await asyncpg.connect(DATABASE_URL)
 
 async def init_database():
-    """Initialize database and load existing data"""
-    global categories_data, products_data, next_category_id, next_product_id
-    
-    # Create data directory if it doesn't exist
-    os.makedirs("data", exist_ok=True)
-    
-    # Load categories
-    if os.path.exists(CATEGORIES_FILE):
-        try:
-            with open(CATEGORIES_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                categories_data = data.get('categories', [])
-                next_category_id = data.get('next_id', 1)
-        except (json.JSONDecodeError, FileNotFoundError):
-            categories_data = []
-            next_category_id = 1
-    else:
-        await save_categories()
-    
-    # Load products
-    if os.path.exists(PRODUCTS_FILE):
-        try:
-            with open(PRODUCTS_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                products_data = data.get('products', [])
-                next_product_id = data.get('next_id', 1)
-        except (json.JSONDecodeError, FileNotFoundError):
-            products_data = []
-            next_product_id = 1
-    else:
-        await save_products()
-
-async def save_categories():
-    """Save categories to file"""
-    data = {
-        'categories': categories_data,
-        'next_id': next_category_id
-    }
-    with open(CATEGORIES_FILE, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-async def save_products():
-    """Save products to file"""
-    data = {
-        'products': products_data,
-        'next_id': next_product_id
-    }
-    with open(PRODUCTS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    """Initialize database and create tables"""
+    conn = await get_connection()
+    try:
+        # Create categories table
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS categories (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL
+            )
+        ''')
+        
+        # Create products table
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS products (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                description TEXT NOT NULL,
+                price DECIMAL(10,2) NOT NULL,
+                category_id INTEGER REFERENCES categories(id) ON DELETE CASCADE
+            )
+        ''')
+        
+    finally:
+        await conn.close()
 
 # Category operations
 async def get_categories() -> List[Dict]:
     """Get all categories"""
-    return categories_data.copy()
+    conn = await get_connection()
+    try:
+        rows = await conn.fetch("SELECT id, name FROM categories ORDER BY id")
+        return [{"id": row["id"], "name": row["name"]} for row in rows]
+    finally:
+        await conn.close()
 
 async def add_category(name: str) -> int:
     """Add new category"""
-    global next_category_id
-    
-    category = {
-        'id': next_category_id,
-        'name': name
-    }
-    
-    categories_data.append(category)
-    category_id = next_category_id
-    next_category_id += 1
-    
-    await save_categories()
-    return category_id
+    conn = await get_connection()
+    try:
+        row = await conn.fetchrow("INSERT INTO categories (name) VALUES ($1) RETURNING id", name)
+        return row["id"]
+    finally:
+        await conn.close()
 
 async def delete_category(category_id: int) -> bool:
     """Delete category and all its products"""
-    global categories_data, products_data
-    
-    # Remove category
-    categories_data = [cat for cat in categories_data if cat['id'] != category_id]
-    
-    # Remove all products in this category
-    products_data = [prod for prod in products_data if prod['category_id'] != category_id]
-    
-    await save_categories()
-    await save_products()
-    return True
+    conn = await get_connection()
+    try:
+        result = await conn.execute("DELETE FROM categories WHERE id = $1", category_id)
+        return result.split()[-1] != "0"  # Check if rows were affected
+    finally:
+        await conn.close()
 
 async def update_category(category_id: int, new_name: str) -> bool:
     """Update category name"""
-    for category in categories_data:
-        if category['id'] == category_id:
-            category['name'] = new_name
-            await save_categories()
-            return True
-    return False
+    conn = await get_connection()
+    try:
+        result = await conn.execute("UPDATE categories SET name = $1 WHERE id = $2", new_name, category_id)
+        return result.split()[-1] != "0"  # Check if rows were affected
+    finally:
+        await conn.close()
 
 # Product operations
 async def get_products() -> List[Dict]:
     """Get all products"""
-    return products_data.copy()
+    conn = await get_connection()
+    try:
+        rows = await conn.fetch("SELECT id, name, description, price, category_id FROM products ORDER BY id")
+        return [
+            {
+                "id": row["id"],
+                "name": row["name"],
+                "description": row["description"],
+                "price": float(row["price"]),
+                "category_id": row["category_id"]
+            }
+            for row in rows
+        ]
+    finally:
+        await conn.close()
 
 async def get_products_by_category(category_id: int) -> List[Dict]:
     """Get products by category"""
-    return [prod for prod in products_data if prod['category_id'] == category_id]
+    conn = await get_connection()
+    try:
+        rows = await conn.fetch(
+            "SELECT id, name, description, price, category_id FROM products WHERE category_id = $1 ORDER BY id",
+            category_id
+        )
+        return [
+            {
+                "id": row["id"],
+                "name": row["name"],
+                "description": row["description"],
+                "price": float(row["price"]),
+                "category_id": row["category_id"]
+            }
+            for row in rows
+        ]
+    finally:
+        await conn.close()
 
 async def get_product(product_id: int) -> Optional[Dict]:
     """Get product by ID"""
-    return next((prod for prod in products_data if prod['id'] == product_id), None)
+    conn = await get_connection()
+    try:
+        row = await conn.fetchrow(
+            "SELECT id, name, description, price, category_id FROM products WHERE id = $1",
+            product_id
+        )
+        if row:
+            return {
+                "id": row["id"],
+                "name": row["name"],
+                "description": row["description"],
+                "price": float(row["price"]),
+                "category_id": row["category_id"]
+            }
+        return None
+    finally:
+        await conn.close()
 
 async def add_product(name: str, description: str, price: float, category_id: int) -> int:
     """Add new product"""
-    global next_product_id
-    
-    product = {
-        'id': next_product_id,
-        'name': name,
-        'description': description,
-        'price': price,
-        'category_id': category_id
-    }
-    
-    products_data.append(product)
-    product_id = next_product_id
-    next_product_id += 1
-    
-    await save_products()
-    return product_id
+    conn = await get_connection()
+    try:
+        row = await conn.fetchrow(
+            "INSERT INTO products (name, description, price, category_id) VALUES ($1, $2, $3, $4) RETURNING id",
+            name, description, price, category_id
+        )
+        return row["id"]
+    finally:
+        await conn.close()
 
 async def delete_product(product_id: int) -> bool:
     """Delete product"""
-    global products_data
-    
-    initial_length = len(products_data)
-    products_data = [prod for prod in products_data if prod['id'] != product_id]
-    
-    if len(products_data) < initial_length:
-        await save_products()
-        return True
-    return False
+    conn = await get_connection()
+    try:
+        result = await conn.execute("DELETE FROM products WHERE id = $1", product_id)
+        return result.split()[-1] != "0"  # Check if rows were affected
+    finally:
+        await conn.close()
 
 async def update_product(product_id: int, name: str, description: str, price: float) -> bool:
     """Update product"""
-    for product in products_data:
-        if product['id'] == product_id:
-            product['name'] = name
-            product['description'] = description
-            product['price'] = price
-            await save_products()
-            return True
-    return False
+    conn = await get_connection()
+    try:
+        result = await conn.execute(
+            "UPDATE products SET name = $1, description = $2, price = $3 WHERE id = $4",
+            name, description, price, product_id
+        )
+        return result.split()[-1] != "0"  # Check if rows were affected
+    finally:
+        await conn.close()

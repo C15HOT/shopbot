@@ -1,7 +1,6 @@
 from aiogram import Router, F
 from aiogram.filters import CommandStart
-from aiogram.types import Message, CallbackQuery
-from aiogram.utils.markdown import hbold, hcode
+from aiogram.types import Message, CallbackQuery, ReplyKeyboardMarkup, KeyboardButton
 
 from config import WELCOME_MESSAGE, ORDER_MESSAGE, SELLER_CONTACT
 from keyboards.inline import get_categories_keyboard, get_products_keyboard, get_product_detail_keyboard
@@ -9,14 +8,44 @@ from utils.database import get_categories, get_products_by_category, get_product
 
 router = Router()
 
+def get_main_menu_keyboard():
+    """Create main menu keyboard"""
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="🛍️ Каталог товаров")],
+            [KeyboardButton(text="👑 Админ панель")]
+        ],
+        resize_keyboard=True,
+        persistent=True
+    )
+    return keyboard
+
 @router.message(CommandStart())
 async def start_command(message: Message):
     """Handle /start command"""
+    categories_kb = await get_categories_keyboard()
+    main_menu = get_main_menu_keyboard()
+    
+    if categories_kb:
+        await message.answer(WELCOME_MESSAGE, reply_markup=categories_kb)
+        await message.answer("Используйте меню внизу для быстрого доступа:", reply_markup=main_menu)
+    else:
+        await message.answer("❌ Категории товаров пока не добавлены.", reply_markup=main_menu)
+
+@router.message(F.text == "🛍️ Каталог товаров")
+async def show_catalog(message: Message):
+    """Show catalog of products"""
     categories_kb = await get_categories_keyboard()
     if categories_kb:
         await message.answer(WELCOME_MESSAGE, reply_markup=categories_kb)
     else:
         await message.answer("❌ Категории товаров пока не добавлены.")
+
+@router.message(F.text == "👑 Админ панель")
+async def admin_panel_shortcut(message: Message):
+    """Shortcut to admin panel"""
+    from handlers.admin import admin_panel
+    await admin_panel(message)
 
 @router.callback_query(F.data.startswith("category_"))
 async def show_category_products(callback: CallbackQuery):
@@ -29,13 +58,15 @@ async def show_category_products(callback: CallbackQuery):
     
     if products_kb:
         await callback.message.edit_text(
-            f"🛍️ Товары в категории {hbold(category_name)}:\n\nВыберите товар:",
-            reply_markup=products_kb
+            f"🛍️ Товары в категории <b>{category_name}</b>:\n\nВыберите товар:",
+            reply_markup=products_kb,
+            parse_mode="HTML"
         )
     else:
         await callback.message.edit_text(
-            f"❌ В категории {hbold(category_name)} пока нет товаров.",
-            reply_markup=await get_categories_keyboard()
+            f"❌ В категории <b>{category_name}</b> пока нет товаров.",
+            reply_markup=await get_categories_keyboard(),
+            parse_mode="HTML"
         )
     
     await callback.answer()
@@ -51,15 +82,15 @@ async def show_product_detail(callback: CallbackQuery):
         return
     
     product_text = f"""
-🛍️ {hbold(product['name'])}
+🛍️ <b>{product['name']}</b>
 
 📝 {product['description']}
 
-💰 Цена: {hbold(str(product['price']) + ' руб.')}
+💰 Цена: <b>{product['price']} руб.</b>
 """
     
     keyboard = get_product_detail_keyboard(product_id, product['category_id'])
-    await callback.message.edit_text(product_text, reply_markup=keyboard)
+    await callback.message.edit_text(product_text, reply_markup=keyboard, parse_mode="HTML")
     await callback.answer()
 
 @router.callback_query(F.data.startswith("order_"))
@@ -73,9 +104,9 @@ async def make_order(callback: CallbackQuery):
         return
     
     order_text = ORDER_MESSAGE.format(contact=SELLER_CONTACT)
-    order_text += f"\n\n🛍️ Товар: {hbold(product['name'])}"
+    order_text += f"\n\n🛍️ Товар: <b>{product['name']}</b>"
     
-    await callback.message.answer(order_text)
+    await callback.message.answer(order_text, parse_mode="HTML")
     await callback.answer("✅ Контакт продавца отправлен!")
 
 @router.callback_query(F.data == "back_to_categories")
@@ -99,13 +130,15 @@ async def back_to_category(callback: CallbackQuery):
     
     if products_kb:
         await callback.message.edit_text(
-            f"🛍️ Товары в категории {hbold(category_name)}:\n\nВыберите товар:",
-            reply_markup=products_kb
+            f"🛍️ Товары в категории <b>{category_name}</b>:\n\nВыберите товар:",
+            reply_markup=products_kb,
+            parse_mode="HTML"
         )
     else:
         await callback.message.edit_text(
-            f"❌ В категории {hbold(category_name)} пока нет товаров.",
-            reply_markup=await get_categories_keyboard()
+            f"❌ В категории <b>{category_name}</b> пока нет товаров.",
+            reply_markup=await get_categories_keyboard(),
+            parse_mode="HTML"
         )
     
     await callback.answer()

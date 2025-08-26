@@ -1,4 +1,9 @@
 {
-  "categories": [],
-  "next_id": 1
+  "categories": [
+    {
+      "id": 1,
+      "name": "Продукты"
+    }
+  ],
+  "next_id": 3
 }
