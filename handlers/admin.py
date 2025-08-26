@@ -241,9 +241,9 @@ async def delete_product_handler(callback: CallbackQuery):
     else:
         await callback.answer("❌ Товар не найден!", show_alert=True)
 
-@router.callback_query(F.data.startswith("edit_product_"))
-async def edit_product_start(callback: CallbackQuery, state: FSMContext):
-    """Start editing product"""
+@router.callback_query(F.data.regex(r"^edit_product_\d+$"))
+async def edit_product_start_old(callback: CallbackQuery, state: FSMContext):
+    """Start editing product (old handler for backward compatibility)"""
     if not is_admin(callback.from_user.id):
         await callback.answer("❌ Доступ запрещен!", show_alert=True)
         return
@@ -383,7 +383,7 @@ async def edit_product_name_start(callback: CallbackQuery, state: FSMContext):
         await callback.answer("❌ Доступ запрещен!", show_alert=True)
         return
     
-    product_id = int(callback.data.split("_")[3])
+    product_id = int(callback.data.split("_")[4])
     product = await get_product(product_id)
     
     if not product:
@@ -424,7 +424,7 @@ async def edit_product_price_start(callback: CallbackQuery, state: FSMContext):
         await callback.answer("❌ Доступ запрещен!", show_alert=True)
         return
     
-    product_id = int(callback.data.split("_")[3])
+    product_id = int(callback.data.split("_")[4])
     product = await get_product(product_id)
     
     if not product:
@@ -467,7 +467,7 @@ async def edit_product_description_start(callback: CallbackQuery, state: FSMCont
         await callback.answer("❌ Доступ запрещен!", show_alert=True)
         return
     
-    product_id = int(callback.data.split("_")[3])
+    product_id = int(callback.data.split("_")[4])
     product = await get_product(product_id)
     
     if not product:
