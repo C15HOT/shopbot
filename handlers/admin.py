@@ -82,6 +82,10 @@ async def add_category_finish(message: Message, state: FSMContext):
     
     category_id = await add_category(category_name)
     await message.answer(f"✅ Категория <b>{category_name}</b> добавлена!", parse_mode="HTML")
+    
+    # Show categories management menu again
+    categories_kb = await get_admin_categories_keyboard()
+    await message.answer("📂 Управление категориями:", reply_markup=categories_kb)
     await state.clear()
 
 @router.callback_query(F.data.startswith("delete_category_"))
@@ -140,6 +144,10 @@ async def edit_category_finish(message: Message, state: FSMContext):
     
     await update_category(category_id, new_name)
     await message.answer(f"✅ Название категории изменено на <b>{new_name}</b>!", parse_mode="HTML")
+    
+    # Show categories management menu again
+    categories_kb = await get_admin_categories_keyboard()
+    await message.answer("📂 Управление категориями:", reply_markup=categories_kb)
     await state.clear()
 
 @router.callback_query(F.data.startswith("add_product_"))
@@ -203,6 +211,10 @@ async def add_product_finish(message: Message, state: FSMContext):
     )
     
     await message.answer(f"✅ Товар <b>{data['product_name']}</b> добавлен!", parse_mode="HTML")
+    
+    # Show products management menu again
+    products_kb = await get_admin_products_keyboard()
+    await message.answer("🛍️ Управление товарами:", reply_markup=products_kb)
     await state.clear()
 
 @router.callback_query(F.data.startswith("delete_product_"))
@@ -299,6 +311,10 @@ async def edit_product_finish(message: Message, state: FSMContext):
     )
     
     await message.answer(f"✅ Товар <b>{data['new_product_name']}</b> обновлен!", parse_mode="HTML")
+    
+    # Show products management menu again
+    products_kb = await get_admin_products_keyboard()
+    await message.answer("🛍️ Управление товарами:", reply_markup=products_kb)
     await state.clear()
 
 @router.callback_query(F.data == "back_to_admin")

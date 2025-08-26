@@ -15,9 +15,10 @@ Preferred communication style: Simple, everyday language.
 
 ## Data Storage
 - **PostgreSQL database**: Categories and products stored in PostgreSQL database tables
-- **Async database operations**: Non-blocking database I/O using asyncpg
+- **SQLAlchemy ORM**: Modern async ORM for database operations with declarative models
 - **Auto-incrementing IDs**: Database-generated primary keys for categories and products
 - **Foreign key constraints**: Referential integrity between categories and products
+- **Async sessions**: Non-blocking database I/O using async SQLAlchemy sessions
 
 ## Application Structure
 - **Modular handlers**: Separate routers for user interactions and admin operations
@@ -50,7 +51,8 @@ Preferred communication style: Simple, everyday language.
 
 ## Data Storage
 - **PostgreSQL**: Robust relational database for data persistence
-- **asyncpg**: Async PostgreSQL driver for Python
+- **SQLAlchemy**: Modern Python SQL toolkit and ORM
+- **asyncpg**: Async PostgreSQL driver for Python (used by SQLAlchemy)
 
 ## Telegram Integration
 - **Telegram Bot API**: Direct integration via bot token

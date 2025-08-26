@@ -28,4 +28,4 @@ outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "pip install aiogram asyncpg && python main.py"
+args = "pip install aiogram asyncpg sqlalchemy && python main.py"
