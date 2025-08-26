@@ -2,19 +2,21 @@ from aiogram import Router, F
 from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardMarkup, KeyboardButton
 
-from config import WELCOME_MESSAGE, ORDER_MESSAGE, SELLER_CONTACT
+from config import WELCOME_MESSAGE, ORDER_MESSAGE, SELLER_CONTACT, ADMIN_ID
 from keyboards.inline import get_categories_keyboard, get_products_keyboard, get_product_detail_keyboard
 from utils.database import get_categories, get_products_by_category, get_product
 
 router = Router()
 
-def get_main_menu_keyboard():
+def get_main_menu_keyboard(is_admin: bool = False):
     """Create main menu keyboard"""
+    keyboard_buttons = [[KeyboardButton(text="🛍️ Каталог товаров")]]
+    
+    if is_admin:
+        keyboard_buttons.append([KeyboardButton(text="👑 Админ панель")])
+    
     keyboard = ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="🛍️ Каталог товаров")],
-            [KeyboardButton(text="👑 Админ панель")]
-        ],
+        keyboard=keyboard_buttons,
         resize_keyboard=True,
         persistent=True
     )
@@ -24,7 +26,8 @@ def get_main_menu_keyboard():
 async def start_command(message: Message):
     """Handle /start command"""
     categories_kb = await get_categories_keyboard()
-    main_menu = get_main_menu_keyboard()
+    is_admin = message.from_user.id == ADMIN_ID
+    main_menu = get_main_menu_keyboard(is_admin)
     
     if categories_kb:
         await message.answer(WELCOME_MESSAGE, reply_markup=categories_kb)
@@ -44,6 +47,11 @@ async def show_catalog(message: Message):
 @router.message(F.text == "👑 Админ панель")
 async def admin_panel_shortcut(message: Message):
     """Shortcut to admin panel"""
+    # Check if user is admin
+    if message.from_user.id != ADMIN_ID:
+        await message.answer("❌ У вас нет доступа к админ панели.")
+        return
+    
     from handlers.admin import admin_panel
     await admin_panel(message)
 

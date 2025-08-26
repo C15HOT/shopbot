@@ -132,14 +132,7 @@ async def get_admin_products_keyboard() -> InlineKeyboardMarkup:
     keyboard = []
     
     # Add product buttons by category
-    if categories:
-        keyboard.append([
-            InlineKeyboardButton(
-                text="➕ Добавить товар",
-                callback_data="admin_add_product_select"
-            )
-        ])
-        
+    if categories:        
         for category in categories:
             category_products = [p for p in products if p['category_id'] == category['id']]
             if category_products:
