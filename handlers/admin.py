@@ -382,8 +382,8 @@ async def edit_product_name_start(callback: CallbackQuery, state: FSMContext):
     if not is_admin(callback.from_user.id):
         await callback.answer("❌ Доступ запрещен!", show_alert=True)
         return
-    
-    product_id = int(callback.data.split("_")[4])
+    print(callback.data)
+    product_id = int(callback.data.split("_")[3])
     product = await get_product(product_id)
     
     if not product:
@@ -424,7 +424,7 @@ async def edit_product_price_start(callback: CallbackQuery, state: FSMContext):
         await callback.answer("❌ Доступ запрещен!", show_alert=True)
         return
     
-    product_id = int(callback.data.split("_")[4])
+    product_id = int(callback.data.split("_")[3])
     product = await get_product(product_id)
     
     if not product:
@@ -466,8 +466,7 @@ async def edit_product_description_start(callback: CallbackQuery, state: FSMCont
     if not is_admin(callback.from_user.id):
         await callback.answer("❌ Доступ запрещен!", show_alert=True)
         return
-    
-    product_id = int(callback.data.split("_")[4])
+    product_id = int(callback.data.split("_")[3])
     product = await get_product(product_id)
     
     if not product:

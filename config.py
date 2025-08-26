@@ -6,7 +6,7 @@ ADMIN_ID = int(os.getenv("ADMIN_ID", "123456789"))  # Replace with actual admin 
 
 # Seller contact information
 SELLER_CONTACT = os.getenv("SELLER_CONTACT", "@seller_username")
-
+GROUP = os.getenv("GROUP", "null")
 # Data file paths
 CATEGORIES_FILE = "data/categories.json"
 PRODUCTS_FILE = "data/products.json"

@@ -28,6 +28,8 @@ services:
       DATABASE_URL: postgresql://bot_user:bot_password@postgres:5432/telegram_bot
       BOT_TOKEN: ${BOT_TOKEN}
       ADMIN_ID: ${ADMIN_ID}
+      SELLER_CONTACT: ${SELLER_CONTACT}
+      GROUP: ${GROUP}
     volumes:
       - ./:/app
     command: >

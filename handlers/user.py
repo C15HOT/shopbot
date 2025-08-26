@@ -2,7 +2,7 @@ from aiogram import Router, F
 from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardMarkup, KeyboardButton
 
-from config import WELCOME_MESSAGE, ORDER_MESSAGE, SELLER_CONTACT, ADMIN_ID
+from config import WELCOME_MESSAGE, ORDER_MESSAGE, SELLER_CONTACT, ADMIN_ID, GROUP
 from keyboards.inline import get_categories_keyboard, get_products_keyboard, get_product_detail_keyboard
 from utils.database import get_categories, get_products_by_category, get_product
 
@@ -11,6 +11,7 @@ router = Router()
 def get_main_menu_keyboard(is_admin: bool = False):
     """Create main menu keyboard"""
     keyboard_buttons = [[KeyboardButton(text="🛍️ Каталог товаров")]]
+    keyboard_buttons.append([KeyboardButton(text="📣 Отзывы о нас")])
     
     if is_admin:
         keyboard_buttons.append([KeyboardButton(text="👑 Админ панель")])
@@ -43,6 +44,10 @@ async def show_catalog(message: Message):
         await message.answer(WELCOME_MESSAGE, reply_markup=categories_kb)
     else:
         await message.answer("❌ Категории товаров пока не добавлены.")
+
+@router.message(F.text == "📣 Отзывы о нас")
+async def return_link(message: Message):
+    await message.answer(f"Посмотрите наши отзывы: {GROUP}")
 
 @router.message(F.text == "👑 Админ панель")
 async def admin_panel_shortcut(message: Message):
