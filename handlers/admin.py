@@ -7,6 +7,7 @@ from aiogram.utils.markdown import hbold
 
 from config import ADMIN_ID, ADMIN_WELCOME_MESSAGE
 from keyboards.inline import get_admin_keyboard, get_admin_categories_keyboard, get_admin_products_keyboard
+from keyboards.admin_extended import get_admin_category_products_keyboard, get_product_admin_keyboard
 from utils.database import (
     add_category, delete_category, update_category, get_categories,
     add_product, delete_product, update_product, get_products, get_product
@@ -23,6 +24,9 @@ class AdminStates(StatesGroup):
     waiting_new_product_name = State()
     waiting_new_product_description = State()
     waiting_new_product_price = State()
+    waiting_product_field_name = State()
+    waiting_product_field_description = State()
+    waiting_product_field_price = State()
 
 def is_admin(user_id: int) -> bool:
     """Check if user is admin"""
@@ -327,3 +331,172 @@ async def back_to_admin(callback: CallbackQuery):
     admin_kb = get_admin_keyboard()
     await callback.message.edit_text(ADMIN_WELCOME_MESSAGE, reply_markup=admin_kb)
     await callback.answer()
+
+# New handlers for improved product management
+@router.callback_query(F.data.startswith("admin_category_products_"))
+async def admin_category_products(callback: CallbackQuery):
+    """Show products in specific category for management"""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("❌ Доступ запрещен!", show_alert=True)
+        return
+    
+    category_id = int(callback.data.split("_")[3])
+    categories = await get_categories()
+    category_name = next((cat["name"] for cat in categories if cat["id"] == category_id), "Неизвестная категория")
+    
+    products_kb = await get_admin_category_products_keyboard(category_id)
+    await callback.message.edit_text(f"🛍️ Товары в категории <b>{category_name}</b>:", reply_markup=products_kb, parse_mode="HTML")
+    await callback.answer()
+
+@router.callback_query(F.data.startswith("view_product_"))
+async def view_product_admin(callback: CallbackQuery):
+    """Show product details for admin"""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("❌ Доступ запрещен!", show_alert=True)
+        return
+    
+    product_id = int(callback.data.split("_")[2])
+    product = await get_product(product_id)
+    
+    if not product:
+        await callback.answer("❌ Товар не найден!", show_alert=True)
+        return
+    
+    product_text = f"""
+📦 <b>{product['name']}</b>
+
+📝 Описание: {product['description']}
+
+💰 Цена: <b>{product['price']} руб.</b>
+
+Выберите что хотите изменить:
+"""
+    
+    keyboard = get_product_admin_keyboard(product_id, product['category_id'])
+    await callback.message.edit_text(product_text, reply_markup=keyboard, parse_mode="HTML")
+    await callback.answer()
+
+@router.callback_query(F.data.startswith("edit_product_name_"))
+async def edit_product_name_start(callback: CallbackQuery, state: FSMContext):
+    """Start editing product name"""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("❌ Доступ запрещен!", show_alert=True)
+        return
+    
+    product_id = int(callback.data.split("_")[3])
+    product = await get_product(product_id)
+    
+    if not product:
+        await callback.answer("❌ Товар не найден!", show_alert=True)
+        return
+    
+    await state.update_data(product_id=product_id, category_id=product['category_id'])
+    await callback.message.answer(f"✏️ Текущее название: <b>{product['name']}</b>\n\nВведите новое название товара:", parse_mode="HTML")
+    await state.set_state(AdminStates.waiting_product_field_name)
+    await callback.answer()
+
+@router.message(AdminStates.waiting_product_field_name)
+async def edit_product_name_finish(message: Message, state: FSMContext):
+    """Finish editing product name"""
+    new_name = message.text.strip()
+    
+    if len(new_name) < 1:
+        await message.answer("❌ Название товара не может быть пустым!")
+        return
+    
+    data = await state.get_data()
+    product = await get_product(data["product_id"])
+    
+    await update_product(data["product_id"], new_name, product['description'], product['price'])
+    await message.answer(f"✅ Название товара изменено на: <b>{new_name}</b>", parse_mode="HTML")
+    
+    # Show category products again
+    products_kb = await get_admin_category_products_keyboard(data["category_id"])
+    categories = await get_categories()
+    category_name = next((cat["name"] for cat in categories if cat["id"] == data["category_id"]), "Категория")
+    await message.answer(f"🛍️ Товары в категории <b>{category_name}</b>:", reply_markup=products_kb, parse_mode="HTML")
+    await state.clear()
+
+@router.callback_query(F.data.startswith("edit_product_price_"))
+async def edit_product_price_start(callback: CallbackQuery, state: FSMContext):
+    """Start editing product price"""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("❌ Доступ запрещен!", show_alert=True)
+        return
+    
+    product_id = int(callback.data.split("_")[3])
+    product = await get_product(product_id)
+    
+    if not product:
+        await callback.answer("❌ Товар не найден!", show_alert=True)
+        return
+    
+    await state.update_data(product_id=product_id, category_id=product['category_id'])
+    await callback.message.answer(f"💰 Текущая цена: <b>{product['price']} руб.</b>\n\nВведите новую цену товара (только число):", parse_mode="HTML")
+    await state.set_state(AdminStates.waiting_product_field_price)
+    await callback.answer()
+
+@router.message(AdminStates.waiting_product_field_price)
+async def edit_product_price_finish(message: Message, state: FSMContext):
+    """Finish editing product price"""
+    try:
+        price = float(message.text.strip())
+        if price <= 0:
+            raise ValueError("Price must be positive")
+    except ValueError:
+        await message.answer("❌ Цена должна быть положительным числом!")
+        return
+    
+    data = await state.get_data()
+    product = await get_product(data["product_id"])
+    
+    await update_product(data["product_id"], product['name'], product['description'], price)
+    await message.answer(f"✅ Цена товара изменена на: <b>{price} руб.</b>", parse_mode="HTML")
+    
+    # Show category products again
+    products_kb = await get_admin_category_products_keyboard(data["category_id"])
+    categories = await get_categories()
+    category_name = next((cat["name"] for cat in categories if cat["id"] == data["category_id"]), "Категория")
+    await message.answer(f"🛍️ Товары в категории <b>{category_name}</b>:", reply_markup=products_kb, parse_mode="HTML")
+    await state.clear()
+
+@router.callback_query(F.data.startswith("edit_product_description_"))
+async def edit_product_description_start(callback: CallbackQuery, state: FSMContext):
+    """Start editing product description"""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("❌ Доступ запрещен!", show_alert=True)
+        return
+    
+    product_id = int(callback.data.split("_")[3])
+    product = await get_product(product_id)
+    
+    if not product:
+        await callback.answer("❌ Товар не найден!", show_alert=True)
+        return
+    
+    await state.update_data(product_id=product_id, category_id=product['category_id'])
+    await callback.message.answer(f"📝 Текущее описание: <b>{product['description']}</b>\n\nВведите новое описание товара:", parse_mode="HTML")
+    await state.set_state(AdminStates.waiting_product_field_description)
+    await callback.answer()
+
+@router.message(AdminStates.waiting_product_field_description)
+async def edit_product_description_finish(message: Message, state: FSMContext):
+    """Finish editing product description"""
+    new_description = message.text.strip()
+    
+    if len(new_description) < 1:
+        await message.answer("❌ Описание товара не может быть пустым!")
+        return
+    
+    data = await state.get_data()
+    product = await get_product(data["product_id"])
+    
+    await update_product(data["product_id"], product['name'], new_description, product['price'])
+    await message.answer(f"✅ Описание товара изменено!", parse_mode="HTML")
+    
+    # Show category products again
+    products_kb = await get_admin_category_products_keyboard(data["category_id"])
+    categories = await get_categories()
+    category_name = next((cat["name"] for cat in categories if cat["id"] == data["category_id"]), "Категория")
+    await message.answer(f"🛍️ Товары в категории <b>{category_name}</b>:", reply_markup=products_kb, parse_mode="HTML")
+    await state.clear()

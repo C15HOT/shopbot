@@ -1,5 +1,6 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from utils.database import get_categories, get_products, get_products_by_category
+from keyboards.admin_extended import get_admin_category_products_keyboard, get_product_admin_keyboard
 
 async def get_categories_keyboard() -> InlineKeyboardMarkup:
     """Create keyboard with categories"""
@@ -125,45 +126,19 @@ async def get_admin_categories_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 async def get_admin_products_keyboard() -> InlineKeyboardMarkup:
-    """Create admin products management keyboard"""
+    """Create admin products categories selection keyboard"""
     categories = await get_categories()
-    products = await get_products()
     
     keyboard = []
     
-    # Add product buttons by category
-    if categories:        
+    if categories:
         for category in categories:
-            category_products = [p for p in products if p['category_id'] == category['id']]
-            if category_products:
-                # Add category header
-                keyboard.append([
-                    InlineKeyboardButton(
-                        text=f"📂 {category['name']}",
-                        callback_data=f"add_product_{category['id']}"
-                    )
-                ])
-                
-                # Add products in this category
-                for product in category_products:
-                    keyboard.append([
-                        InlineKeyboardButton(
-                            text=f"✏️ {product['name']} - {product['price']} руб.",
-                            callback_data=f"edit_product_{product['id']}"
-                        ),
-                        InlineKeyboardButton(
-                            text="🗑️",
-                            callback_data=f"delete_product_{product['id']}"
-                        )
-                    ])
-            else:
-                # Category with no products - just add button
-                keyboard.append([
-                    InlineKeyboardButton(
-                        text=f"➕ Добавить в {category['name']}",
-                        callback_data=f"add_product_{category['id']}"
-                    )
-                ])
+            keyboard.append([
+                InlineKeyboardButton(
+                    text=f"📂 {category['name']}",
+                    callback_data=f"admin_category_products_{category['id']}"
+                )
+            ])
     
     keyboard.append([
         InlineKeyboardButton(
