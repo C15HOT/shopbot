@@ -53,6 +53,8 @@ def get_product_admin_keyboard(product_id: int, category_id: int) -> InlineKeybo
                 callback_data=f"edit_product_description_{product_id}"
             )
         ],
+        [ InlineKeyboardButton(text="📸 Изображение", callback_data=f"edit_product_image_{product_id}"),
+        InlineKeyboardButton(text="🗑️ Удалить фото", callback_data=f"delete_product_image_{product_id}")],
         [
             InlineKeyboardButton(
                 text="🗑️ Удалить товар",

@@ -40,7 +40,7 @@ class Product(Base):
     description: Mapped[str] = mapped_column(String(1000), nullable=False)
     price: Mapped[float] = mapped_column(Float, nullable=False)
     category_id: Mapped[int] = mapped_column(Integer, ForeignKey("categories.id"), nullable=False)
-    
+    image_path: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     # Relationship
     category: Mapped["Category"] = relationship("Category", back_populates="products")
 
@@ -105,7 +105,8 @@ async def get_products() -> List[dict]:
                 "name": prod.name,
                 "description": prod.description,
                 "price": prod.price,
-                "category_id": prod.category_id
+                "category_id": prod.category_id,
+                "image_path": prod.image_path
             }
             for prod in products
         ]
@@ -121,7 +122,8 @@ async def get_products_by_category(category_id: int) -> List[dict]:
                 "name": prod.name,
                 "description": prod.description,
                 "price": prod.price,
-                "category_id": prod.category_id
+                "category_id": prod.category_id,
+                "image_path": prod.image_path
             }
             for prod in products
         ]
@@ -137,14 +139,15 @@ async def get_product(product_id: int) -> Optional[dict]:
                 "name": product.name,
                 "description": product.description,
                 "price": product.price,
-                "category_id": product.category_id
+                "category_id": product.category_id,
+                "image_path": product.image_path
             }
         return None
 
-async def add_product(name: str, description: str, price: float, category_id: int) -> int:
+async def add_product(name: str, description: str, price: float, category_id: int, image_path: Optional[str] = None) -> int:
     """Add new product"""
     async with async_session() as session:
-        product = Product(name=name, description=description, price=price, category_id=category_id)
+        product = Product(name=name, description=description, price=price, category_id=category_id, image_path=image_path)
         session.add(product)
         await session.commit()
         await session.refresh(product)
@@ -161,7 +164,7 @@ async def delete_product(product_id: int) -> bool:
             return True
         return False
 
-async def update_product(product_id: int, name: str, description: str, price: float) -> bool:
+async def update_product(product_id: int, name: str, description: str, price: float, image_path: Optional[str] = None) -> bool:
     """Update product"""
     async with async_session() as session:
         result = await session.execute(select(Product).where(Product.id == product_id))
@@ -170,6 +173,23 @@ async def update_product(product_id: int, name: str, description: str, price: fl
             product.name = name
             product.description = description
             product.price = price
+            # Update image path if provided
+            if image_path is not None:
+                # Additional logic to delete the old image file if a new one is uploaded
+                if product.image_path and os.path.exists(product.image_path) and product.image_path != image_path:
+                    os.remove(product.image_path)
+                product.image_path = image_path
+            await session.commit()
+            return True
+        return False
+
+async def update_product_image(product_id: int, image_path: Optional[str]) -> bool:
+    """Update product image only"""
+    async with async_session() as session:
+        result = await session.execute(select(Product).where(Product.id == product_id))
+        product = result.scalar_one_or_none()
+        if product:
+            product.image_path = image_path
             await session.commit()
             return True
         return False
