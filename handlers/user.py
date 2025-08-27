@@ -32,7 +32,7 @@ async def start_command(message: Message):
     main_menu = get_main_menu_keyboard(is_admin)
 
     if categories_kb:
-        await message.answer(WELCOME_MESSAGE, reply_markup=categories_kb)
+        await message.answer(WELCOME_MESSAGE, reply_markup=main_menu)
         # await message.answer("""Используйте меню внизу для быстрого доступа:""", reply_markup=main_menu)
     else:
         await message.answer("❌ Категории товаров пока не добавлены.", reply_markup=main_menu)
