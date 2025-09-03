@@ -51,7 +51,7 @@ def get_product_detail_keyboard(product_id: int, category_id: int) -> InlineKeyb
     keyboard = [
         [
             InlineKeyboardButton(
-                text="🛒 Сделать заказ",
+                text="🛒 Связаться с продавцом",
                 callback_data=f"order_{product_id}"
             )
         ],
