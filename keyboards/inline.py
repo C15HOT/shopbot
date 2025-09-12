@@ -1,6 +1,7 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from utils.database import get_categories, get_products, get_products_by_category
+from utils.database import get_categories, get_products, get_products_by_category, get_product
 from keyboards.admin_extended import get_admin_category_products_keyboard, get_product_admin_keyboard
+from config import SELLER_CONTACT
 
 async def get_categories_keyboard() -> InlineKeyboardMarkup:
     """Create keyboard with categories"""
@@ -46,13 +47,18 @@ async def get_products_keyboard(category_id: int) -> InlineKeyboardMarkup:
     
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
-def get_product_detail_keyboard(product_id: int, category_id: int) -> InlineKeyboardMarkup:
+async def get_product_detail_keyboard(product_id: int, category_id: int) -> InlineKeyboardMarkup:
     """Create keyboard for product details"""
+    product = await get_product(product_id)
+    SELLER = SELLER_CONTACT.split("@")[1]
     keyboard = [
         [
             InlineKeyboardButton(
                 text="🛒 Связаться с продавцом",
-                callback_data=f"order_{product_id}"
+                url=(
+                    f"tg://resolve?domain={SELLER}&text=Здравствуйте%2C%0A"
+                    f"Я%20хочу%20заказать%20товар%20'{product.get('name')}'"
+                )
             )
         ],
         [

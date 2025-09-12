@@ -105,7 +105,7 @@ async def show_product_detail(callback: CallbackQuery):
 💰 Цена: <b>{product['price']} руб.</b>
 """
     
-    keyboard = get_product_detail_keyboard(product_id, product['category_id'])
+    keyboard = await get_product_detail_keyboard(product_id, product['category_id'])
     
     # Show image if available
     if product.get('image_path') and os.path.exists(product['image_path']):
